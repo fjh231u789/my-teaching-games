@@ -104,20 +104,29 @@
 
 <script>
     // --- 此處請填入你的 Firebase 配置 ---
-const firebaseConfig = {
-      apiKey: "AIzaSyCd_OIxg6Ocl8Ib0XqbnBdodfE-_O-vWiw",
-      authDomain: "fjh231u789-7da9e.firebaseapp.com",
-      projectId: "fjh231u789-7da9e",
-      storageBucket: "fjh231u789-7da9e.firebasestorage.app",
-      messagingSenderId: "619572868445",
-      appId: "1:619572868445:web:c82aa97509bb48cabb24b4",
-      measurementId: "G-JKWP95SPBR"
-    };
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
-    const auth = firebase.auth();
-    const appId = 'orthography-hero-v2';
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyCd_OIxg6Ocl8Ib0XqbnBdodfE-_O-vWiw",
+            authDomain: "fjh231u789-7da9e.firebaseapp.com",
+            projectId: "fjh231u789-7da9e",
+            storageBucket: "fjh231u789-7da9e.firebasestorage.app",
+            messagingSenderId: "619572868445",
+            appId: "1:619572868445:web:c82aa97509bb48cabb24b4",
+            measurementId: "G-JKWP95SPBR"
+        };
+
+        // 初始化 Firebase
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        
+        const db = firebase.firestore(); // 這行非常重要，是英雄榜的靈魂！
+        const auth = firebase.auth();
+        const appId = 'orthography-hero-v2'; // 這行一定要獨立在外面
 
     // 題庫資料 (已包含你提供的所有題目)
     const LEVEL1_DB = [
