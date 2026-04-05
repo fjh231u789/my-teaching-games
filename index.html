@@ -109,7 +109,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 
     <script>
-        // Firebase 配置
+        // 2. 設定你的專案連線資訊
         const firebaseConfig = {
             apiKey: "AIzaSyCd_OIxg6Ocl8Ib0XqbnBdodfE-_O-vWiw",
             authDomain: "fjh231u789-7da9e.firebaseapp.com",
@@ -120,11 +120,10 @@
             measurementId: "G-JKWP95SPBR"
         };
 
-        // 初始化 Firebase
+        // 3. 啟動連線
         if (!firebase.apps.length) {
             firebase.initializeApp(firebaseConfig);
         }
-        
         const db = firebase.firestore(); 
         const auth = firebase.auth();
         const appId = 'orthography-hero-v2';
