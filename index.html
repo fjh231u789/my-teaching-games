@@ -109,6 +109,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 
     <script>
+        // Firebase 配置
         const firebaseConfig = {
             apiKey: "AIzaSyCd_OIxg6Ocl8Ib0XqbnBdodfE-_O-vWiw",
             authDomain: "fjh231u789-7da9e.firebaseapp.com",
@@ -124,9 +125,9 @@
             firebase.initializeApp(firebaseConfig);
         }
         
-        const db = firebase.firestore(); // 這行非常重要，是英雄榜的靈魂！
+        const db = firebase.firestore(); 
         const auth = firebase.auth();
-        const appId = 'orthography-hero-v2'; // 這行一定要獨立在外面
+        const appId = 'orthography-hero-v2';
 
     // 題庫資料 (已包含你提供的所有題目)
     const LEVEL1_DB = [
