@@ -506,25 +506,69 @@
             }
         },
 
-        loop() { this.draw(); requestAnimationFrame(() => this.loop()); }
+showHint(msg, show) {
+            const h = document.getElementById('hint-display');
+            h.innerText = msg; h.style.opacity = show ? 1 : 0;
+        },
+
+        draw() {
+            const { ctx, canvas, state } = this;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            if (!state.active) return;
+            const q = state.questions[state.qIdx];
+            if (!q) return;
+
+            if (!q.options) {
+                ctx.font = "bold 36px Microsoft JhengHei"; ctx.textBaseline = "middle";
+                const cleanQ = q.q.replace(/[「（(].*?[」）)]/g, "　　");
+                const totalW = ctx.measureText(cleanQ).width;
+                let startX = 450 - totalW / 2;
+                const tokens = q.q.split(/([「（(].*?[」）)])/);
+                let sIdx = 0;
+                tokens.forEach(t => {
+                    if (t.match(/[「（(].*?[」）)]/)) {
+                        const s = state.slots[sIdx];
+                        if(s) {
+                            ctx.fillStyle = "#f1f5f9"; ctx.fillRect(s.x, s.y, s.w, s.h);
+                            ctx.strokeStyle = "#cbd5e1"; ctx.strokeRect(s.x, s.y, s.w, s.h);
+                            startX += 100; sIdx++;
+                        }
+                    } else {
+                        ctx.fillStyle = "#1e293b"; ctx.textAlign = "left"; ctx.fillText(t, startX, 225);
+                        startX += ctx.measureText(t).width;
+                    }
+                });
+                state.draggables.forEach(d => {
+                    ctx.fillStyle = "white"; ctx.fillRect(d.x, d.y, d.w, d.h);
+                    ctx.strokeStyle = "#3b82f6"; ctx.strokeRect(d.x, d.y, d.w, d.h);
+                    ctx.textAlign = "center";
+                    if (d.icon) {
+                        ctx.font = "24px Microsoft JhengHei"; ctx.fillStyle = "#1e293b";
+                        ctx.fillText(d.text, d.x + d.w/2 - 15, d.y + d.h/2);
+                        ctx.font = "24px serif"; ctx.fillText(d.icon, d.x + d.w/2 + 20, d.y + d.h/2);
+                    } else {
+                        ctx.font = "bold 36px Microsoft JhengHei"; ctx.fillStyle = "#1e293b";
+                        ctx.fillText(d.text, d.x + d.w/2, d.y + d.h/2);
+                    }
+                });
+            } else {
+                ctx.textAlign = "center"; ctx.textBaseline = "middle";
+                ctx.fillStyle = "#3b82f6"; ctx.font = "bold 100px Microsoft JhengHei"; ctx.fillText(q.字, 450, 200);
+                ctx.fillStyle = "#475569"; ctx.font = "bold 40px Microsoft JhengHei"; ctx.fillText(q.q, 450, 320);
+            }
+        },
+
+        loop() { 
+            this.draw(); 
+            requestAnimationFrame(() => this.loop()); 
+        }
     };
 
-    // 載入英雄榜
-    function loadLeaderboard() {
-        const container = document.getElementById('leaderboard-content');
-        db.collection('artifacts').doc(appId).collection('public').doc('data').collection('scores')
-            .orderBy('score', 'desc').orderBy('time', 'asc').limit(10)
-            .onSnapshot(snapshot => {
-                let html = "";
-                snapshot.forEach(doc => {
-                    const s = doc.data();
-                    html += `<div class="leaderboard-row"><span style="flex:2">${s.name}</span><span style="flex:1">${s.score}</span><span style="flex:1">${s.time}s</span></div>`;
-                });
-                container.innerHTML = html || '<div class="leaderboard-row">尚無英雄紀錄</div>';
-            });
-    }
-
-    window.onload = () => { game.init(); loadLeaderboard(); };
+    // 啟動遊戲引擎
+    game.init();
+</script>
+</body>
+</html>
 </script>
 </body>
 </html>
