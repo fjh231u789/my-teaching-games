@@ -1,155 +1,597 @@
 <!DOCTYPE html>
-<html lang="zh-Hant">
+<html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>超級文字大冒險：生字英雄榜</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>生字英雄傳 - 識字大挑戰</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap');
-        body { font-family: 'Noto Sans TC', sans-serif; background-color: #f0f9ff; touch-action: manipulation; }
-        .hidden { display: none; }
-        .shake { animation: shake 0.5s; }
-        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-10px); } 75% { transform: translateX(10px); } }
-        .drop-zone { display: inline-flex; width: 65px; height: 65px; border: 3px dashed #94a3b8; border-radius: 12px; vertical-align: middle; justify-content: center; align-items: center; margin: 0 4px; background-color: #ffffff; font-weight: bold; font-size: 1.8rem; transition: all 0.3s; }
-        .drop-zone.filled { border-style: solid; border-color: #3b82f6; color: #1e3a8a; }
-        .drop-zone.correct-border { border-color: #10b981 !important; background-color: #f0fdf4; color: #10b981 !important; }
-        .drop-zone.wrong-border { border-color: #ef4444 !important; background-color: #fef2f2; color: #ef4444 !important; }
-        .option-card { touch-action: none; user-select: none; transition: all 0.2s; cursor: grab; }
-        .radical-icon { display: inline-block; margin-left: 6px; font-size: 1.2rem; background: #f1f5f9; padding: 2px 6px; border-radius: 8px; color: #4338ca; }
-        .rank-badge { width: 30px; height: 30px; display: flex; items-center: center; justify-content: center; border-radius: 50%; font-weight: bold; margin-right: 10px; }
+        :root {
+            --primary-color: #4a90e2;
+            --secondary-color: #f5a623;
+            --success-color: #7ed321;
+            --error-color: #d0021b;
+            --bg-color: #f0f4f8;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: "Microsoft JhengHei", sans-serif;
+            background-color: var(--bg-color);
+            overflow: hidden;
+            touch-action: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            max-width: 1024px;
+            max-height: 768px;
+            background: white;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        canvas {
+            display: block;
+            background: #fff;
+        }
+
+        /* 介面覆蓋層 */
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255,255,255,0.95);
+            z-index: 10;
+        }
+
+        .hidden { display: none !important; }
+
+        h1 { color: var(--primary-color); margin-bottom: 20px; }
+        
+        input {
+            padding: 12px;
+            font-size: 1.2rem;
+            border: 2px solid var(--primary-color);
+            border-radius: 8px;
+            margin-bottom: 20px;
+            width: 250px;
+            text-align: center;
+        }
+
+        button {
+            padding: 12px 30px;
+            font-size: 1.2rem;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        button:active { transform: scale(0.95); }
+
+        .feedback-box {
+            position: absolute;
+            bottom: 20%;
+            width: 80%;
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            font-size: 1.3rem;
+            font-weight: bold;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            animation: popIn 0.3s ease;
+            z-index: 20;
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0.8); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .hint-stage1 { background: #fff3cd; color: #856404; border: 3px solid #ffeeba; }
+        .hint-stage2 { background: #f8d7da; color: #721c24; border: 3px solid #f5c6cb; }
+
+        .rank-table {
+            width: 90%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        .rank-table th, .rank-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
+        }
+        .rank-table th { background: var(--primary-color); color: white; }
     </style>
 </head>
-<body class="p-2 md:p-6" ondragover="event.preventDefault()">
-    <div id="app-container" class="max-w-4xl mx-auto bg-white rounded-3xl shadow-2xl overflow-hidden border-4 border-indigo-200">
-        <!-- 登入畫面 -->
-        <div id="login-screen" class="p-8 text-center">
-            <div class="mb-4 inline-block p-6 bg-yellow-100 rounded-full text-6xl shadow-inner">⚔️</div>
-            <h1 class="text-4xl font-black text-indigo-700 mb-2">超級文字大冒險</h1>
-            <p class="text-slate-500 mb-8 text-xl font-bold">成為生字英雄吧！</p>
-            <div class="max-w-md mx-auto bg-slate-50 p-8 rounded-3xl border-2 border-slate-200 shadow-sm mb-8">
-                <label class="block text-slate-700 font-bold mb-4 text-lg">輸入英雄稱號：</label>
-                <input type="text" id="player-name" placeholder="英雄的名字..." class="w-full px-6 py-4 border-2 border-indigo-200 rounded-2xl mb-6 text-center text-slate-800 text-2xl outline-none transition-all">
-                <button onclick="startGame()" class="w-full bg-indigo-600 text-white font-black py-5 rounded-2xl text-2xl shadow-[0_6px_0_0_#4338ca] hover:translate-y-[4px] transition-all">開始冒險 ➔</button>
-            </div>
-        </div>
+<body>
 
-        <!-- 遊戲畫面 -->
-        <div id="game-screen" class="hidden">
-            <div class="bg-indigo-700 p-4 text-white flex justify-between items-center shadow-md">
-                <button onclick="location.reload()" class="bg-indigo-500 text-xs py-1 px-3 rounded-lg font-bold">🏠 放棄冒險</button>
-                <div class="flex flex-col items-center">
-                    <span id="display-name" class="font-black text-yellow-300">英雄：...</span>
-                    <span id="game-timer" class="font-mono text-xl text-white bg-indigo-900/50 px-3 py-1 rounded-full mt-1">00:00</span>
-                </div>
-                <span id="game-score" class="font-black text-2xl text-yellow-400">0</span>
-            </div>
-            <div class="p-6">
-                <div id="section-header" class="text-xl font-bold text-slate-700 mb-4 border-b pb-2 flex justify-between">
-                    <div><span id="section-icon" class="mr-2 text-2xl"></span><span id="section-title">載入中...</span></div>
-                    <div id="progress-bar" class="text-indigo-400 font-black">進度：0 / 30</div>
-                </div>
-                <div id="question-container" class="min-h-[380px] flex flex-col justify-center items-center"></div>
-                <div id="feedback-area" class="mt-4 p-5 rounded-2xl hidden border-l-[10px] transition-all shadow-md"></div>
-                <div class="mt-8 flex justify-center pt-6 border-t">
-                    <button id="next-btn" onclick="handleAction()" class="hidden bg-green-600 text-white px-12 py-4 rounded-2xl font-black text-xl shadow-[0_6px_0_0_#15803d]">下一題 ➔</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- 結果畫面 -->
-        <div id="result-screen" class="hidden p-12 text-center">
-            <div class="text-8xl mb-6">👑</div>
-            <h2 class="text-4xl font-black text-indigo-700 mb-2">冒險完成！</h2>
-            <div id="final-stats" class="text-2xl mb-8 font-bold text-slate-600 bg-slate-50 p-6 rounded-3xl inline-block"></div>
-            <button onclick="location.reload()" class="bg-indigo-600 text-white px-12 py-5 rounded-2xl font-black text-2xl block mx-auto">重新挑戰</button>
-        </div>
+<div id="game-container">
+    <div id="login-screen" class="overlay">
+        <h1>生字英雄傳</h1>
+        <p>四年級識字大挑戰</p>
+        <input type="text" id="player-name" placeholder="請輸入你的姓名" maxlength="10">
+        <button onclick="startGame()">開始冒險</button>
     </div>
 
-    <script>
-        // 題庫數據與邏輯 (簡化版以確保穩定運行)
-        const MASTER_DATA_POOL = {
-            section1: [
-                { q: "「 」有；「 」慎", options: ["僅", "謹"], ans: [0, 1], hint: "人(亻)旁的「僅」表示少；言(言)旁的「謹」表示說話小心。" },
-                { q: "敏「 」；「 」毛", options: ["捷", "睫"], ans: [0, 1], hint: "手(扌)部「捷」指快；目(目)部「睫」指睫毛。" },
-                { q: "感「 」；「 」費", options: ["激", "繳"], ans: [0, 1], hint: "水(氵)部「激」發；糸(糸)部「繳」費跟錢、線有關。" }
-                // ...此處省略其餘題庫以節省空間，正式版可自行補足
-            ],
-            section2: [], section3: [] // 同理
-        };
+    <div id="tutorial-screen" class="overlay hidden">
+        <h2 id="tut-title">遊戲教學</h2>
+        <p id="tut-content" style="font-size: 1.5rem; padding: 0 40px; text-align: center; line-height: 1.6;"></p>
+        <button onclick="startLevel()">我知道了！</button>
+    </div>
 
-        let gameState = { playerName: "", score: 0, startTime: 0, currentIndex: 0, questions: [], currentSelections: [] };
+    <div id="result-screen" class="overlay hidden">
+        <h2>挑戰完成！</h2>
+        <p id="final-stats" style="font-size: 1.2rem;"></p>
+        <div id="leaderboard-area" style="width: 100%; display: flex; flex-direction: column; align-items: center;">
+            <h3>排行榜 (Top 5)</h3>
+            <table class="rank-table" id="rank-list"></table>
+        </div>
+        <button onclick="location.reload()" style="margin-top: 20px;">再挑戰一次</button>
+    </div>
 
-        function startGame() {
-            const name = document.getElementById('player-name').value.trim();
-            if (!name) return alert("請輸入名字！");
-            gameState.playerName = name;
-            gameState.questions = [...MASTER_DATA_POOL.section1].sort(()=>0.5-Math.random()).slice(0,5);
-            document.getElementById('login-screen').classList.add('hidden');
-            document.getElementById('game-screen').classList.remove('hidden');
-            document.getElementById('display-name').innerText = `英雄：${name}`;
-            gameState.startTime = Date.now();
-            showQuestion();
+    <canvas id="gameCanvas"></canvas>
+    <div id="feedback" class="feedback-box hidden"></div>
+</div>
+
+<script>
+/** 題庫資料嵌入 **/
+const LEVEL1_DB = [
+    { words: ["僅", "謹"], q: "「 」有；「 」慎", ans: [0, 1], h1: "僅：只有。謹：小心。", h2: "僅：人部，指只有一個人，代表很少。謹：言部，指說話要很小心。" },
+    { words: ["捷", "睫"], q: "敏「 」；「 」毛", ans: [0, 1], h1: "捷：快速。睫：眼睛。", h2: "捷：手部，動作像拍手一樣快。睫：目部，眼睛上面的毛。" },
+    { words: ["激", "繳"], q: "感「 」；「 」費", ans: [0, 1], h1: "激：水流。繳：交付。", h2: "激：水部，像水花噴濺一樣激動。繳：糸部，古代用絲線綁好錢財交出。" },
+    { words: ["預", "順"], q: "「 」防；「 」利", ans: [0, 1], h1: "預：事先。順：流暢。", h2: "預：頁部(頭)，腦袋先想好。順：川部，指水流很通暢、沒阻礙。" },
+    { words: ["慶", "矛"], q: "「 」祝；「 」盾", ans: [0, 1], h1: "慶：喜事。矛：兵器。", h2: "慶：心部，心裡感到很開心。矛：形狀像古代長長的尖頭兵器。" },
+    { words: ["迎", "仰"], q: "歡「 」；「 」望", ans: [0, 1], h1: "迎：接納。仰：抬頭。", h2: "迎：辶部，走過去接客人。仰：人部，指人抬頭往上看。" },
+    { words: ["判", "申"], q: "「 」斷；「 」請", ans: [0, 1], h1: "判：裁決。申：陳述。", h2: "判：刀部，像用刀切開一樣分清楚。申：指向上級說明、申請。" },
+    { words: ["設", "段", "殷"], q: "「 」計；「 」落；「 」勤", ans: [0, 1, 2], h1: "設：計畫。段：部分。殷：勤勞。", h2: "設：言部，用說話來計畫。段：指東西切成一小塊。殷：指做事非常熱心。" },
+    { words: ["強", "棟"], q: "「 」大；一「 」房", ans: [0, 1], h1: "強：有力。棟：量詞。", h2: "強：指力氣很大。棟：木部，指蓋房子需要的大木柱。" },
+    { words: ["致", "緻"], q: "導「 」；細「 」", ans: [0, 1], h1: "致：送到。緻：精細。", h2: "致：指事物的結果。緻：糸部，指衣服織得很細、很精美。" },
+    { words: ["殼", "緻"], q: "貝「 」；精「 」", ans: [0, 1], h1: "殼：硬皮。緻：精細。", h2: "殼：動物堅硬的皮（如龜殼）。緻：糸部，像細絲一樣織得很精緻。" },
+    { words: ["施", "拖"], q: "「 」工；「 」拉", ans: [0, 1], h1: "施：執行。拖：拉動。", h2: "施：指正在動工、給予。拖：手部，用手用力拉著東西走。" },
+    { words: ["敏", "勤"], q: "靈「 」；「 」勞", ans: [0, 1], h1: "敏：靈活。勤：出力。", h2: "敏：反應很快。勤：力部，花很多力氣做事、不偷懶。" },
+    { words: ["碳", "呷"], q: "「 」火；「 」一口茶", ans: [0, 1], h1: "碳：燃料。呷：喝茶。", h2: "碳：石部，黑色的石頭燃料。呷：口部，用嘴巴小小口地喝。" },
+    { words: ["徑", "捷"], q: "小「 」；敏「 」", ans: [0, 1], h1: "徑：小路。捷：成功。", h2: "徑：彳部，人走的小路。捷：手部，很快就成功（捷報）。" },
+    { words: ["梅", "悔"], q: "「 」花；後「 」", ans: [0, 1], h1: "梅：植物。悔：難過。", h2: "梅：木部，冬天開花的樹。悔：心部，心裡覺得做錯事而難過。" },
+    { words: ["潮", "嘲"], q: "「 」濕；「 」笑", ans: [0, 1], h1: "潮：水氣。嘲：譏笑。", h2: "潮：水部，空氣濕濕的有水氣。嘲：口部，用嘴巴說笑話取笑人。" },
+    { words: ["蒼", "倉"], q: "「 」翠；「 」庫", ans: [0, 1], h1: "蒼：顏色。倉：空間。", h2: "蒼：草部，像草一樣深青色。倉：指收藏東西的屋子（倉庫）。" },
+    { words: ["創", "搶", "槍"], q: "「 」造；「 」奪；手「 」", ans: [0, 1, 2], h1: "創：開始。搶：拿走。槍：武器。", h2: "創：刀部，切開舊的建立新的。搶：手部，用力拿走。槍：木部，木製長兵器。" },
+    { words: ["臣", "巨"], q: "大「 」；「 」大", ans: [0, 1], h1: "臣：輔佐。巨：巨大。", h2: "臣：輔助國王的人。巨：形狀非常大（像把大尺）。" },
+    { words: ["溪", "雞"], q: "「 」水；「 」蛋", ans: [0, 1], h1: "溪：河流。雞：家禽。", h2: "溪：水部，山間的小河。雞：隹部，翅膀短的小鳥（家禽）。" },
+    { words: ["艘", "搜"], q: "一「 」船；「 」查", ans: [0, 1], h1: "艘：量詞。搜：找尋。", h2: "艘：舟部，計算船的量詞。搜：手部，用手到處翻找尋查。" },
+    { words: ["截", "載", "戴", "栽"], q: "「 」肢；「 」客人；「 」帽子；「 」培", ans: [0, 1, 2, 3], h1: "截：切斷。載：裝運。戴：穿戴。栽：種植。", h2: "截：戈部切斷。載：車運。戴：加在頭上。栽：木部把植物種進土裡。" },
+    { words: ["賜", "踢"], q: "賞「 」；拳打腳「 」", ans: [0, 1], h1: "賜：給予。踢：用腳。", h2: "賜：貝部，把寶貝送給下級。踢：足部，用腳用力撞擊。" },
+    { words: ["饒", "澆"], q: "「 」恕；「 」花", ans: [0, 1], h1: "饒：原諒。澆：灑水。", h2: "饒：食部，食物多到可以大方原諒。澆：水部，把水灑下去。" },
+    { words: ["頻", "順"], q: "「 」繁；「 」利", ans: [0, 1], h1: "頻：多次。順：通暢。", h2: "頻：頁部，指次數很多。順：川部，水流方向正確、不卡住。" },
+    { words: ["洪", "拱", "共", "供"], q: "「 」水；「 」橋；公「 」；「 」應", ans: [0, 1, 2, 3], h1: "洪：大水。拱：弧形。共：大家。供：給予。", h2: "洪：水部大水。拱：手部弧形。共：一起。供：人部提供。" }
+];
+
+const LEVEL2_DB = [
+    { words: ["苗", "描"], q: "（ ）述、花（ ）", ans: [1, 0], h1: "✋描(手部)、🌱苗(草部)", h2: "描：手部指用手畫。苗：草部初生的植物。" },
+    { words: ["雄", "維", "稚"], q: "（ ）護、英（ ）、（ ）氣", ans: [1, 0, 2], h1: "🧶維(絲)、🐦雄(鳥)、🌾稚(禾)", h2: "維：糸部繩子。雄：隹部強大。稚：禾部幼小。" },
+    { words: ["巡", "尋", "循"], q: "（ ）邏、搜（ ）、（ ）環", ans: [0, 1, 2], h1: "🚶巡(走)、📏尋(尺)、彳循(行)", h2: "巡：辶部代表在路上走動。循：彳部指照著路走。" },
+    { words: ["匣", "押", "舺"], q: "（ ）子、抵（ ）、艋（ ）", ans: [0, 1, 2], h1: "📦匣(箱)、✋押(手)、🚣舺(船)", h2: "匣：匚部容器。押：手部。舺：舟部小船。" },
+    { words: ["甲", "申", "由"], q: "（ ）板、自（ ）、（ ）請", ans: [0, 2, 1], h1: "🐚甲(殼)、⚡申(陳)、💡由(因)", h2: "甲：硬殼。由：理由。申：向上級申請。" },
+    { words: ["喚", "換", "煥", "渙"], q: "召（ ）、交（ ）、（ ）散、容光（ ）發", ans: [0, 1, 3, 2], h1: "👄喚(口)、✋換(手)、🔥煥(火)、💧渙(水)", h2: "喚：口部叫人。煥：火部像火發亮。分開則為水流渙散。" },
+    { words: ["禾", "未", "末"], q: "（ ）來、週（ ）、（ ）苗", ans: [1, 2, 0], h1: "🌳未(尚未)、🌲末(尾巴)、🌾禾(穀物)", h2: "未：尚未。末：樹梢。禾：植物。" },
+    { words: ["豐", "風"], q: "（ ）收", ans: [0], h1: "🌾豐(多)、🌬️風(空氣)", h2: "豐：代表農作物長得非常多。" },
+    { words: ["季", "秀", "委"], q: "秋（ ）、（ ）託、優（ ）", ans: [0, 2, 1], h1: "🌾季(節)、🌾秀(美)、🌾委(託)", h2: "季：季節。委：委託他人。秀：優秀。" },
+    { words: ["穗", "惠"], q: "稻（ ）、恩（ ）", ans: [0, 1], h1: "🌾穗(植物)、❤️惠(心)", h2: "穗：禾部結實。惠：心部的恩德。" },
+    { words: ["燦", "璨"], q: "（ ）爛、璀（ ）", ans: [0, 1], h1: "🔥燦(火)、💎璨(玉)", h2: "燦：火部光亮。璨：玉部精美。" },
+    { words: ["建", "健", "鍵", "腱"], q: "（ ）康、關（ ）、肌（ ）、（ ）設", ans: [1, 2, 3, 0], h1: "👤健(人)、⚔️鍵(金)、🥩腱(肉)、🚶建(建)", h2: "健：強健的人。鍵：金屬零件。腱：肉筋。建：建設。" },
+    { words: ["致", "緻"], q: "細（ ）、導（ ）", ans: [1, 0], h1: "🧶緻(絲)、🎯致(到)", h2: "緻：糸部精細。致：導致結果。" },
+    { words: ["棟", "凍", "練", "陳"], q: "（ ）結、一（ ）房、（ ）舊、（ ）習", ans: [1, 0, 3, 2], h1: "❄️凍(冰)、🌳棟(木)、阝陳(舊)、🧶練(絲)", h2: "凍：冰部。棟：木部樑柱。陳：陳舊。練：練習。" },
+    { words: ["囪", "窗"], q: "煙（ ）、（ ）簾", ans: [0, 1], h1: "🌫️囪(煙)、🕳️窗(洞)", h2: "囪：煙囪。窗：牆上的洞口。" },
+    { words: ["覽", "纜", "攬", "欖"], q: "導（ ）、（ ）車、橄（ ）、包（ ）", ans: [0, 1, 2, 3], h1: "👁️覽(看)、🧶纜(繩)、🌳欖(木)、✋攬(手)", h2: "覽：看見。纜：粗繩。欖：橄欖木。攬：手部抓。" },
+    { words: ["塔", "搭"], q: "燈（ ）、（ ）配", ans: [0, 1], h1: "🧱塔(土)、✋搭(手)", h2: "塔：土建建築。搭：手放上去。" },
+    { words: ["廉", "鐮", "簾"], q: "（ ）價、窗（ ）、（ ）刀", ans: [0, 2, 1], h1: "🏠廉(屋)、🎋簾(竹)、⚔️鐮(金)", h2: "廉：清廉。簾：竹簾。鐮：金屬鐮刀。" },
+    { words: ["瓢", "飄", "漂"], q: "（ ）亮、隨風（ ）、水（ ）", ans: [2, 1, 0], h1: "💧漂(水)、🌬️飄(風)、🎃瓢(瓜)", h2: "漂：水洗乾淨。飄：風吹。瓢：水瓢。" },
+    { words: ["僅", "謹", "勤"], q: "（ ）慎、（ ）勞、（ ）有", ans: [1, 2, 0], h1: "👄謹(說)、💪勤(力)、👤僅(人)", h2: "謹：小心說話。勤：力部做事。僅：只有。" },
+    { words: ["橘", "敏", "梅"], q: "（ ）子、靈（ ）、（ ）花", ans: [0, 1, 2], h1: "🌳橘(木)、攴敏(快)、🌳梅(木)", h2: "橘、梅都是木部植物。敏：反應快。" },
+    { words: ["朝", "潮", "嘲"], q: "（ ）代、（ ）水、（ ）笑", ans: [0, 1, 2], h1: "☀️朝(日)、💧潮(水)、👄嘲(口)", h2: "朝：早晨。潮：海水。嘲：開口取笑。" },
+    { words: ["舍", "捨", "舒"], q: "（ ）適、校（ ）、不（ ）", ans: [2, 0, 1], h1: "🏠舍(屋)、✋捨(丟)、予舒(伸)", h2: "舍：屋舍。捨：手部丟掉。舒：伸展身心。" },
+    { words: ["翠", "碎", "粹", "萃"], q: "（ ）綠、破（ ）、（ ）取、純（ ）", ans: [0, 1, 3, 2], h1: "🪶翠(羽)、🪨碎(石)、🌾萃(草)、🍚粹(米)", h2: "翠：羽毛色。碎：石頭破。萃：草部採集。粹：米部純淨。" },
+    { words: ["巨", "臣"], q: "（ ）大、大（ ）", ans: [0, 1], h1: "📏巨(大)、👤臣(官)", h2: "巨：巨大的尺。臣：輔佐的大臣。" },
+    { words: ["周", "凋", "調"], q: "（ ）圍、（ ）零、（ ）皮", ans: [0, 1, 2], h1: "📦周(周圍)、❄️凋(冷)、👄調(說)", h2: "周：四周。凋：冰部代表枯萎。調：說話戲弄。" },
+    { words: ["臨", "林"], q: "（ ）時", ans: [0], h1: "👤臨(到)、🌳林(樹)", h2: "臨：臣部，代表來到或對著。" },
+    { words: ["黯", "暗", "諳"], q: "（ ）淡、不（ ）世事、黑（ ）", ans: [0, 2, 1], h1: "⬛黯(黑)、👄諳(說)、☀️暗(日)", h2: "黯：黑部代表黑暗。諳：言部代表熟悉。" },
+    { words: ["溪", "雞"], q: "（ ）水、公（ ）", ans: [0, 1], h1: "💧溪(水)、🐦雞(鳥)", h2: "溪：水部河川。雞：鳥部家禽。" },
+    { words: ["回", "迴", "洄"], q: "（ ）家、（ ）轉、（ ）流", ans: [0, 1, 2], h1: "🔄回(歸)、🚶迴(走)、💧洄(水)", h2: "回：歸來。迴：辶部旋繞。洄：水逆流。" },
+    { words: ["艘", "搜", "瘦", "餿"], q: "（ ）查、（ ）水、（ ）小、一（ ）船", ans: [1, 3, 2, 0], h1: "✋搜(手)、🍛餿(食)、疒瘦(病)、🚣艘(船)", h2: "搜：翻找。餿：食物壞。瘦：病部。艘：舟部量詞。" },
+    { words: ["舟", "州"], q: "拼板（ ）", ans: [0], h1: "🚣舟(船)、🗺️州(地)", h2: "舟：像小船的樣子。" },
+    { words: ["列", "烈", "裂", "冽"], q: "並（ ）、（ ）火、破（ ）、冷（ ）", ans: [0, 1, 2, 3], h1: "⚔️列(切)、🔥烈(火)、🧶裂(衣)、❄️冽(冰)", h2: "列：分開。烈：火大。裂：衣破。冽：冰冷。" },
+    { words: ["戴", "載", "截", "栽"], q: "（ ）帽子、（ ）客人、（ ）肢、（ ）培", ans: [0, 1, 2, 3], h1: "👤戴(頭)、🚗載(車)、⚔️截(斷)、🌳栽(木)", h2: "戴：頭上。載：車運。截：切斷。栽：種植。" },
+    { words: ["盔", "灰"], q: "頭（ ）", ans: [0], h1: "🏺盔(皿)、🔥灰(火)", h2: "盔：像盆子一樣的防護器皿。" },
+    { words: ["召", "招", "沼", "紹"], q: "（ ）澤、介（ ）、（ ）集、（ ）手", ans: [2, 3, 0, 1], h1: "💧沼(水)、🧶紹(連)、👄召(口)、✋招(手)", h2: "沼：水池。紹：連結。召：叫人。招：招手。" },
+    { words: ["饒", "僥", "澆"], q: "（ ）花、（ ）倖、求（ ）", ans: [2, 1, 0], h1: "💧澆(水)、👤僥(人)、🍚饒(食)", h2: "澆：灑水。僥：幸運的人。饒：食部饒恕。" },
+    { words: ["預", "頓", "頻"], q: "（ ）習、一（ ）飯、（ ）繁", ans: [0, 1, 2], h1: "👤預(先)、👤頓(停)、👤頻(多)", h2: "均為頁部(頭)，與腦中思考或動作狀態有關。" },
+    { words: ["餘", "徐", "敘", "途"], q: "（ ）述、路（ ）、剩（ ）、（ ）緩", ans: [2, 3, 0, 1], h1: "👄敘(說)、🚶途(路)、🍚餘(剩)、🚶徐(慢)", h2: "敘：說。途：道路。餘：剩下。徐：慢走。" },
+    { words: ["予", "矛"], q: "（ ）盾、給（ ）", ans: [1, 0], h1: "⚔️矛(兵)、✋予(給)", h2: "矛：尖頭兵器。予：給予他人。" },
+    { words: ["慶", "鹿"], q: "（ ）祝", ans: [0], h1: "❤️慶(心)、🦌鹿(鹿)", h2: "慶：心部的喜悅節慶。" },
+    { words: ["褲", "庫"], q: "倉（ ）、（ ）子", ans: [1, 0], h1: "📦庫(房)、🧶褲(衣)", h2: "庫：存物處。褲：穿的衣服。" },
+    { words: ["華", "滑"], q: "（ ）麗", ans: [0], h1: "🌸華(花)、💧滑 (水)", h2: "華：像花一樣美麗繁榮。" },
+    { words: ["披", "波", "坡"], q: "山（ ）、（ ）浪、（ ）上", ans: [2, 1, 0], h1: "⛰️坡(土)、💧波(水)、✋披(手)", h2: "坡：土堆。波：水浪。披：用手蓋上。" },
+    { words: ["紗", "袍", "巾"], q: "（ ）窗、旗（ ）、毛（ ）", ans: [0, 1, 2], h1: "🧶紗(絲)、🧶袍(衣)、🧶巾(布)", h2: "均為織物相關字組。" },
+    { words: ["宙", "抽", "柚", "袖"], q: "宇（ ）、（ ）獎、（ ）子、領（ ）", ans: [0, 1, 2, 3], h1: "🏠宙(屋)、✋抽(手)、🌳柚(木)、🧶袖(衣)", h2: "宙：宇宙。抽：拉取。柚：水果。袖：衣袖。" },
+    { words: ["庭", "鯉", "旗"], q: "（ ）院、（ ）魚、國（ ）", ans: [0, 1, 2], h1: "🏠庭(屋)、🐟鯉(魚)、🚩旗(方)", h2: "庭：院子。鯉：魚類。旗：旗幟。" },
+    { words: ["偶", "愚", "遇", "寓"], q: "（ ）數、（ ）人節、（ ）見、（ ）言", ans: [0, 1, 2, 3], h1: "👤偶(人)、❤️愚 (心)、🚶遇 (走)、🏠寓 (住)", h2: "偶：人。愚：笨心。遇：碰到。寓：住處。" },
+    { words: ["翁", "扇"], q: "老（ ）、（ ）風", ans: [0, 1], h1: "🪶翁(羽)、🚪扇(門)", h2: "翁：白髮老頭。扇：門扉形狀。" }
+];
+
+const LEVEL3_DB = [
+    {字: "強", q: "勉「強」", options: ["ㄑㄧㄤˊ", "ㄑㄧㄤˇ", "ㄐㄧㄤˋ"], ans: 1, h1: "ㄑㄧㄤˇ：被迫的。", h2: "當你覺得心不甘情不願、被逼著去做某件事時讀三聲。" },
+    {字: "強", q: "「強」大", options: ["ㄑㄧㄤˊ", "ㄑㄧㄤˇ", "ㄐㄧㄤˋ"], ans: 0, h1: "ㄑㄧㄤˊ：有力的。", h2: "形容力量大、厲害、優點多時讀二聲。" },
+    {字: "強", q: "倔「強」", options: ["ㄑㄧㄤˊ", "ㄑㄧㄤˇ", "ㄐㄧㄤˋ"], ans: 2, h1: "ㄐㄧㄤˋ：固執。", h2: "形容性格剛硬、固執不服從時讀四聲。" },
+    {字: "悶", q: "「悶」熱", options: ["ㄇㄣ", "ㄇㄣˋ"], ans: 0, h1: "ㄇㄣ：不通風。", h2: "空氣不通風、吸不到氣使人不舒服讀一聲。" },
+    {字: "悶", q: "煩「悶」", options: ["ㄇㄣ", "ㄇㄣˋ"], ans: 1, h1: "ㄇㄣˋ：心煩。", h2: "心情鬱悶、不快樂的內在感覺讀四聲。" },
+    {字: "漂", q: "「漂」亮", options: ["ㄆㄧㄠ", "ㄆㄧㄠˇ", "ㄆㄧㄠˋ"], ans: 2, h1: "ㄆㄧㄠˋ：精彩。", h2: "形容事物美麗、好極了的讚美讀四聲。" },
+    {字: "朝", q: "「朝」陽", options: ["ㄓㄠ", "ㄔㄠˊ"], ans: 0, h1: "ㄓㄠ：清晨。", h2: "指清晨、早晨的特定時間讀一聲。" },
+    {字: "朝", q: "「朝」向", options: ["ㄓㄠ", "ㄔㄠˊ"], ans: 1, h1: "ㄔㄠˊ：對著。", h2: "指面對著、對著某個方位的動作讀二聲。" },
+    {字: "調", q: "「調」皮", options: ["ㄊㄧㄠˊ", "ㄉㄧㄠˋ"], ans: 0, h1: "ㄊㄧㄠˊ：戲弄。", h2: "指淘氣、愛玩鬧或是調節的樣子讀二聲。" },
+    {字: "調", q: "「調」動", options: ["ㄊㄧㄠˊ", "ㄉㄧㄠˋ"], ans: 1, h1: "ㄉㄧㄠˋ：更動。", h2: "指職務更換、移動位置的動作讀四聲。" },
+    {字: "待", q: "「待」會兒", options: ["ㄉㄞ", "ㄉㄞˋ"], ans: 0, h1: "ㄉㄞ：停留。", h2: "指暫時停留、等一下的動作讀一聲。" },
+    {字: "待", q: "等「待」", options: ["ㄉㄞ", "ㄉㄞˋ"], ans: 1, h1: "ㄉㄞˋ：期望。", h2: "指守候、期盼或是對待別人的態度讀四聲。" }
+];
+
+/** 遊戲狀態 **/
+let state = {
+    playerName: "",
+    currentLevel: 1,
+    score: 0,
+    totalQuestions: 10,
+    currentQuestionIdx: 0,
+    questions: [],
+    startTime: 0,
+    wrongAttempts: 0,
+    isDragging: false,
+    dragObj: null,
+    slots: [],
+    draggables: [],
+    feedbackTimer: null
+};
+
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const feedbackEl = document.getElementById('feedback');
+
+// 初始化尺寸
+function resize() {
+    canvas.width = Math.min(window.innerWidth, 1024);
+    canvas.height = Math.min(window.innerHeight, 768);
+}
+window.addEventListener('resize', resize);
+resize();
+
+/** 排行榜功能 (LocalStorage) **/
+function saveScore(name, score, time) {
+    let records = JSON.parse(localStorage.getItem('heroRank')) || [];
+    records.push({ name, score, time: (time/1000).toFixed(2) });
+    // 排序：分數高優先，分數相同則時間短優先
+    records.sort((a, b) => b.score - a.score || a.time - b.time);
+    localStorage.setItem('heroRank', JSON.stringify(records.slice(0, 10)));
+}
+
+function showRank() {
+    const list = document.getElementById('rank-list');
+    let records = JSON.parse(localStorage.getItem('heroRank')) || [];
+    list.innerHTML = `<tr><th>名次</th><th>姓名</th><th>分數</th><th>秒數</th></tr>`;
+    records.slice(0, 5).forEach((r, i) => {
+        list.innerHTML += `<tr><td>${i+1}</td><td>${r.name}</td><td>${r.score}</td><td>${r.time}</td></tr>`;
+    });
+}
+
+/** 遊戲流程控制 **/
+function startGame() {
+    const nameInput = document.getElementById('player-name').value.trim();
+    if (!nameInput) return alert("請輸入姓名！");
+    state.playerName = nameInput;
+    document.getElementById('login-screen').classList.add('hidden');
+    showTutorial(1);
+}
+
+function showTutorial(level) {
+    state.currentLevel = level;
+    const tutScreen = document.getElementById('tutorial-screen');
+    const title = document.getElementById('tut-title');
+    const content = document.getElementById('tut-content');
+    
+    tutScreen.classList.remove('hidden');
+    if (level <= 2) {
+        title.innerText = `第 ${level} 關：拖曳大應援`;
+        content.innerText = `小朋友，請用手指將下方的【正確生字】拖移到上方的【空格處】。如果放錯了，會有兩次提示喔！`;
+    } else {
+        title.innerText = `第 3 關：多音字高手`;
+        content.innerText = `這一關請觀察詞語，直接點選畫面中【正確的讀音】就可以囉！`;
+    }
+}
+
+function startLevel() {
+    document.getElementById('tutorial-screen').classList.add('hidden');
+    state.currentQuestionIdx = 0;
+    state.score = 0;
+    state.startTime = Date.now();
+    
+    // 隨機抽 10 題
+    let db = state.currentLevel === 1 ? LEVEL1_DB : (state.currentLevel === 2 ? LEVEL2_DB : LEVEL3_DB);
+    state.questions = [...db].sort(() => 0.5 - Math.random()).slice(0, 10);
+    
+    loadQuestion();
+    requestAnimationFrame(gameLoop);
+}
+
+function loadQuestion() {
+    state.wrongAttempts = 0;
+    feedbackEl.classList.add('hidden');
+    const q = state.questions[state.currentQuestionIdx];
+    
+    if (state.currentLevel <= 2) {
+        // 設定拖曳物與空格
+        state.slots = [];
+        state.draggables = [];
+        
+        // 解析題目空格數量
+        const blankCount = (q.q.match(/「 」/g) || q.q.match(/（ ）/g) || []).length;
+        
+        // 建立空格
+        for(let i=0; i<blankCount; i++) {
+            state.slots.push({
+                x: (canvas.width / (blankCount + 1)) * (i+1) - 50,
+                y: 250,
+                w: 100,
+                h: 100,
+                filled: null,
+                correctIdx: q.ans[i]
+            });
         }
+        
+        // 建立選項 (隨機排序)
+        let options = q.words.map((w, idx) => ({ text: w, originalIdx: idx }));
+        options.sort(() => 0.5 - Math.random());
+        
+        options.forEach((opt, i) => {
+            state.draggables.push({
+                x: (canvas.width / (options.length + 1)) * (i+1) - 40,
+                y: 500,
+                startX: (canvas.width / (options.length + 1)) * (i+1) - 40,
+                startY: 500,
+                w: 80,
+                h: 80,
+                text: opt.text,
+                id: opt.originalIdx
+            });
+        });
+    } else {
+        // 第三關：按鈕式
+        state.slots = q.options.map((opt, i) => ({
+            x: (canvas.width / (q.options.length + 1)) * (i+1) - 75,
+            y: 450,
+            w: 150,
+            h: 80,
+            text: opt,
+            correct: i === q.ans
+        }));
+    }
+}
 
-        function showQuestion() {
-            const q = gameState.questions[gameState.currentIndex];
-            document.getElementById('progress-bar').innerText = `進度：${gameState.currentIndex + 1} / ${gameState.questions.length}`;
-            document.getElementById('feedback-area').classList.add('hidden');
-            document.getElementById('next-btn').classList.add('hidden');
-            
-            let dzIdx = 0;
-            const formatted = q.q.replace(/「 」/g, () => `<div id="dz-${dzIdx++}" ondragover="event.preventDefault()" ondrop="drop(event, ${dzIdx-1})" class="drop-zone">?</div>`);
-            
-            const container = document.getElementById('question-container');
-            container.innerHTML = `
-                <div class="text-3xl font-bold mb-8">${formatted}</div>
-                <div class="flex gap-4">
-                    ${q.options.map((opt, i) => `<div draggable="true" ondragstart="drag(event, ${i})" class="option-card bg-white border-2 p-4 rounded-xl text-2xl shadow">${opt}</div>`).join('')}
-                </div>
-                <button onclick="checkAnswer()" class="mt-8 bg-indigo-600 text-white px-8 py-2 rounded-full font-bold">送出答案</button>
-            `;
-        }
+/** 繪圖與邏輯 **/
+function gameLoop() {
+    if (document.getElementById('result-screen').className.indexOf('hidden') === -1) return;
+    
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // 繪製背景裝飾與進度
+    ctx.fillStyle = "#333";
+    ctx.font = "24px Arial";
+    ctx.fillText(`玩家: ${state.playerName}  |  關卡: ${state.currentLevel}  |  進度: ${state.currentQuestionIdx + 1}/10`, 20, 40);
+    
+    const q = state.questions[state.currentQuestionIdx];
+    
+    // 繪製題目
+    ctx.fillStyle = "#000";
+    ctx.font = "bold 40px Microsoft JhengHei";
+    ctx.textAlign = "center";
+    ctx.fillText(q.q || q.字, canvas.width/2, 150);
+    if(q.字) {
+        ctx.font = "28px Microsoft JhengHei";
+        ctx.fillText(`「${q.字}」在此語詞應讀作？`, canvas.width/2, 200);
+    }
+    
+    if (state.currentLevel <= 2) {
+        // 繪製空格
+        state.slots.forEach(s => {
+            ctx.strokeStyle = "#aaa";
+            ctx.setLineDash([5, 5]);
+            ctx.strokeRect(s.x, s.y, s.w, s.h);
+            ctx.setLineDash([]);
+            if (s.filled !== null) {
+                ctx.fillStyle = "#e1f5fe";
+                ctx.fillRect(s.x, s.y, s.w, s.h);
+                ctx.fillStyle = "#000";
+                ctx.fillText(s.filled, s.x + s.w/2, s.y + s.h/2 + 15);
+            }
+        });
+        
+        // 繪製拖曳字
+        state.draggables.forEach(d => {
+            ctx.fillStyle = varColor('--primary-color');
+            ctx.beginPath();
+            ctx.roundRect(d.x, d.y, d.w, d.h, 10);
+            ctx.fill();
+            ctx.fillStyle = "#fff";
+            ctx.font = "40px Microsoft JhengHei";
+            ctx.fillText(d.text, d.x + d.w/2, d.y + d.h/2 + 15);
+        });
+    } else {
+        // 第三關按鈕
+        state.slots.forEach(s => {
+            ctx.fillStyle = varColor('--secondary-color');
+            ctx.beginPath();
+            ctx.roundRect(s.x, s.y, s.w, s.h, 15);
+            ctx.fill();
+            ctx.fillStyle = "#fff";
+            ctx.font = "32px Arial";
+            ctx.fillText(s.text, s.x + s.w/2, s.y + s.h/2 + 12);
+        });
+    }
+    
+    requestAnimationFrame(gameLoop);
+}
 
-        function drag(ev, i) { ev.dataTransfer.setData("idx", i); }
-        function drop(ev, zIdx) {
-            ev.preventDefault();
-            const optIdx = ev.dataTransfer.getData("idx");
-            const q = gameState.questions[gameState.currentIndex];
-            const zone = document.getElementById(`dz-${zIdx}`);
-            zone.innerText = q.options[optIdx];
-            zone.classList.add('filled');
-            gameState.currentSelections[zIdx] = parseInt(optIdx);
-        }
+function varColor(name) {
+    return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
 
-        function checkAnswer() {
-            const q = gameState.questions[gameState.currentIndex];
-            let correct = true;
-            q.ans.forEach((a, i) => { if(gameState.currentSelections[i] !== a) correct = false; });
+/** 互動處理 (滑鼠 & 平板觸控) **/
+canvas.addEventListener('mousedown', handleDown);
+canvas.addEventListener('mousemove', handleMove);
+canvas.addEventListener('mouseup', handleUp);
+canvas.addEventListener('touchstart', (e) => handleDown(e.touches[0]));
+canvas.addEventListener('touchmove', (e) => handleMove(e.touches[0]));
+canvas.addEventListener('touchend', (e) => handleUp(e.changedTouches[0]));
 
-            const fb = document.getElementById('feedback-area');
-            fb.classList.remove('hidden');
-            if(correct) {
-                gameState.score += 10;
-                fb.className = "mt-4 p-5 rounded-2xl bg-green-100 text-green-800 border-l-[10px] border-green-500";
-                fb.innerHTML = "✨ 答對了！太棒了！";
-                document.getElementById('next-btn').classList.remove('hidden');
+function handleDown(e) {
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    
+    if (state.currentLevel <= 2) {
+        state.draggables.forEach(d => {
+            if (x > d.x && x < d.x + d.w && y > d.y && y < d.y + d.h) {
+                state.isDragging = true;
+                state.dragObj = d;
+            }
+        });
+    } else {
+        // 第三關點擊檢核
+        state.slots.forEach(s => {
+            if (x > s.x && x < s.x + s.w && y > s.y && y < s.y + s.h) {
+                checkAnswer(s.correct, state.questions[state.currentQuestionIdx]);
+            }
+        });
+    }
+}
+
+function handleMove(e) {
+    if (!state.isDragging || !state.dragObj) return;
+    const rect = canvas.getBoundingClientRect();
+    state.dragObj.x = e.clientX - rect.left - state.dragObj.w/2;
+    state.dragObj.y = e.clientY - rect.top - state.dragObj.h/2;
+}
+
+function handleUp(e) {
+    if (!state.isDragging || !state.dragObj) return;
+    
+    const d = state.dragObj;
+    let dropped = false;
+    
+    state.slots.forEach(s => {
+        if (d.x + d.w/2 > s.x && d.x + d.w/2 < s.x + s.w && d.y + d.h/2 > s.y && d.y + d.h/2 < s.y + s.h) {
+            if (d.id === s.correctIdx) {
+                s.filled = d.text;
+                d.x = -200; // 隱藏已正確填入的字
+                checkLevelComplete();
+                dropped = true;
             } else {
-                fb.className = "mt-4 p-5 rounded-2xl bg-orange-100 text-orange-800 border-l-[10px] border-orange-500";
-                fb.innerHTML = `🧐 提示：${q.hint}`;
+                showFeedback(false);
             }
-            document.getElementById('game-score').innerText = gameState.score;
         }
+    });
+    
+    if (!dropped) {
+        d.x = d.startX;
+        d.y = d.startY;
+    }
+    
+    state.isDragging = false;
+    state.dragObj = null;
+}
 
-        function handleAction() {
-            gameState.currentIndex++;
-            if(gameState.currentIndex < gameState.questions.length) showQuestion();
-            else {
-                document.getElementById('game-screen').classList.add('hidden');
-                document.getElementById('result-screen').classList.remove('hidden');
-                document.getElementById('final-stats').innerText = `${gameState.playerName} 獲得 ${gameState.score} 分！`;
-            }
+function checkLevelComplete() {
+    if (state.slots.every(s => s.filled !== null)) {
+        showFeedback(true);
+    }
+}
+
+// 第三關與一般檢核
+function checkAnswer(isCorrect, q) {
+    if (isCorrect) {
+        showFeedback(true);
+    } else {
+        showFeedback(false);
+    }
+}
+
+function showFeedback(isCorrect) {
+    const q = state.questions[state.currentQuestionIdx];
+    feedbackEl.classList.remove('hidden', 'hint-stage1', 'hint-stage2');
+    
+    if (isCorrect) {
+        state.score += (10 - state.wrongAttempts);
+        feedbackEl.innerHTML = `太棒了！正確答案！<br><small>${q.h2}</small>`;
+        feedbackEl.style.color = "green";
+        setTimeout(nextQuestion, 2500);
+    } else {
+        state.wrongAttempts++;
+        if (state.wrongAttempts === 1) {
+            feedbackEl.classList.add('hint-stage1');
+            feedbackEl.innerHTML = `哎呀，再試試看！<br>提示：${q.h1}`;
+        } else {
+            feedbackEl.classList.add('hint-stage2');
+            feedbackEl.innerHTML = `沒關係，我們來學習：<br>${q.h2}`;
+            setTimeout(nextQuestion, 4000);
         }
-    </script>
+    }
+}
+
+function nextQuestion() {
+    state.currentQuestionIdx++;
+    if (state.currentQuestionIdx < 10) {
+        loadQuestion();
+    } else {
+        if (state.currentLevel < 3) {
+            showTutorial(state.currentLevel + 1);
+        } else {
+            finishGame();
+        }
+    }
+}
+
+function finishGame() {
+    const totalTime = Date.now() - state.startTime;
+    saveScore(state.playerName, state.score, totalTime);
+    
+    document.getElementById('result-screen').classList.remove('hidden');
+    document.getElementById('final-stats').innerText = 
+        `英雄 ${state.playerName}，你的總分是 ${state.score} 分！耗時 ${(totalTime/1000).toFixed(2)} 秒。`;
+    showRank();
+}
+
+/** 輔助繪圖：圓角矩形 **/
+CanvasRenderingContext2D.prototype.roundRect = function (x, y, w, h, r) {
+    if (w < 2 * r) r = w / 2;
+    if (h < 2 * r) r = h / 2;
+    this.moveTo(x + r, y);
+    this.arcTo(x + w, y, x + w, y + h, r);
+    this.arcTo(x + w, y + h, x, y + h, r);
+    this.arcTo(x, y + h, x, y, r);
+    this.arcTo(x, y, x + w, y, r);
+    this.closePath();
+    return this;
+};
+</script>
 </body>
 </html>
